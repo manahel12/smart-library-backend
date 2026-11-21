@@ -8,8 +8,8 @@ const config = {
   password: process.env.DB_PASSWORD,
   port: parseInt(process.env.DB_PORT) || 1433,
   options: {
-    encrypt: true, // AWS RDS ke liye zaroori
-    trustServerCertificate: false,
+    encrypt: true, // AWS RDS ke liye zaroori hai
+    trustServerCertificate: true, // <-- Ye line change ki hai (false se true)
     enableArithAbort: true
   },
   pool: {
