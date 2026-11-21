@@ -1,13 +1,14 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { sql, poolPromise } = require('../db');
+const { sql, getPool } = require('../db');
 require('dotenv').config();
 
 exports.register = async (req, res) => {
   try {
     const { username, password, fullName } = req.body;
     if (!username || !password || !fullName) return res.status(400).json({ message: 'All fields required' });
-    const pool = await poolPromise;
+    
+    const pool = await getPool();
     const existing = await pool.request().input('u', sql.NVarChar, username).query('SELECT LibrarianID FROM Librarian WHERE Username=@u');
     if (existing.recordset.length) return res.status(409).json({ message: 'Username already exists' });
     
@@ -17,6 +18,7 @@ exports.register = async (req, res) => {
       .input('p', sql.NVarChar, hash)
       .input('n', sql.NVarChar, fullName)
       .query('INSERT INTO Librarian (Username, PasswordHash, FullName) VALUES (@u,@p,@n)');
+      
     res.json({ message: 'Registration successful! Welcome to the University Library.' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
@@ -24,7 +26,7 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
-    const pool = await poolPromise;
+    const pool = await getPool();
     const result = await pool.request().input('u', sql.NVarChar, username).query('SELECT * FROM Librarian WHERE Username=@u');
     if (!result.recordset.length) return res.status(401).json({ message: 'Invalid credentials' });
     
@@ -33,7 +35,7 @@ exports.login = async (req, res) => {
     if (lib.PasswordHash.startsWith('$2')) {
       ok = await bcrypt.compare(password, lib.PasswordHash);
     } else {
-      ok = (password === lib.PasswordHash); // Seed data plain text
+      ok = (password === lib.PasswordHash);
     }
     
     if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
